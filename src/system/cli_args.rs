@@ -57,7 +57,7 @@ fn extract_params(matches: &clap::ArgMatches, arg_name: &str) -> HashMap<String,
             Some(position) => position,
             None => continue,
         };
-        let key = String::from(&param[..pos-1]);
+        let key = String::from(&param[..pos]);
         let value = String::from(&param[pos+1..]);
         result.insert(key, value);
     }

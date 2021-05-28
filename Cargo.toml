@@ -1,5 +1,5 @@
 [package]
-name = "shida-core"
+name = "shida-cli"
 version = "0.1.0"
 authors = ["Sergei Beljakov <1899416+tasmanianfox@users.noreply.github.com>"]
 edition = "2018"
@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33.3"
+
+shida-core = { path ="../shida-core" }
