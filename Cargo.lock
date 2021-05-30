@@ -77,6 +77,7 @@ name = "shida-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "libloading",
  "shida-core",
 ]
 
@@ -85,7 +86,6 @@ name = "shida-core"
 version = "0.1.0"
 dependencies = [
  "libc",
- "libloading",
 ]
 
 [[package]]

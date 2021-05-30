@@ -8,5 +8,6 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33.3"
+libloading = "0.7"
 
 shida-core = { path ="../shida-core" }

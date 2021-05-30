@@ -1,10 +1,10 @@
+mod modules;
 mod system;
 
+use crate::modules::load_modules;
 use crate::system::cli_args::CliArgs;
 
 use shida_core::ffi::string_to_ccharptr;
-use shida_core::module::{LibModule, load_modules};
-
 
 
 fn main() {
