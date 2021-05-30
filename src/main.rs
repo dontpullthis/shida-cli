@@ -1,41 +1,49 @@
 mod modules;
 mod system;
 
+use std::io::{Error, ErrorKind};
+use std::rc::Rc;
+
+use crate::modules::lib_module::LibModule;
 use crate::modules::load_modules;
 use crate::system::cli_args::CliArgs;
 
 use shida_core::ffi::string_to_ccharptr;
 
 
-fn main() {
+fn assign_lib(lib: &mut Option<Rc<LibModule>>, lib_candidate: &Rc<LibModule>, lib_name_arg: Option<&String>) {
+    let can_handle_fn = lib_candidate.module.can_handle;
+    let input_type = match lib_name_arg {
+        Some(i) => i,
+        None => return,
+    };
+    unsafe {
+        if can_handle_fn(string_to_ccharptr(input_type.to_string())) {
+            *lib = Some(lib_candidate.clone());
+        }
+    }
+}
+
+fn main() -> Result<(), Error> {
     let args = match CliArgs::new_from_args() {
         Ok(a) => a,
-        Err(_) => return,
+        Err(e) => return Err(Error::new(ErrorKind::InvalidInput, format!("Failed to parse arguments: {}", e))),
     };
 
-    // TODO: DELETEME
-    for (k, v) in &args.input {
-        println!("Input: {}={}", k, v);
-    }
-    for (k, v) in &args.output {
-        println!("Output: {}={}", k, v);
-    }
-
     let mut modules = load_modules().into_iter();
-    // TODO: implement assignment of modules. Maybe use reference counters?
-    // let input_module: Option<LibModule> = None;
-    // let output_module: Option<LibModule> = None;
+    let mut input_module: Option<Rc<LibModule>> = None;
+    let mut output_module: Option<Rc<LibModule>> = None;
     while let Some(lm) = modules.next() {
-        let can_handle_fn = lm.module.can_handle;
-        unsafe {
-            let input_type = match args.input.get("type") {
-                Some(i) => i,
-                None => continue,
-            };
-            println!("Can parse: {}", can_handle_fn(string_to_ccharptr(input_type.to_string())))
-        }
-        
+        assign_lib(&mut input_module, &lm, args.input.get("type"));
+        assign_lib(&mut output_module, &lm, args.output.get("type"));
     }
 
-    println!("End");
+    if input_module.is_none() {
+        return Err(Error::new(ErrorKind::InvalidInput, "Cannot find a module for input."))
+    }
+    if output_module.is_none() {
+        return Err(Error::new(ErrorKind::InvalidInput, "Cannot find a module for output."))
+    }
+
+    Ok(())
 }

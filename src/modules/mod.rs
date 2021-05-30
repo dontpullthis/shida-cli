@@ -1,7 +1,8 @@
-mod lib_module;
+pub mod lib_module;
 
 use std::collections::LinkedList;
 use std::fs;
+use std::rc::Rc;
 
 use libloading::{Library, Symbol};
 
@@ -18,8 +19,8 @@ fn load_module_from_lib(path: String) -> Result<LibModule, Box<dyn std::error::E
     }
 }
 
-pub fn load_modules() -> LinkedList<LibModule> {
-    let mut result: LinkedList<LibModule> = LinkedList::new();
+pub fn load_modules() -> LinkedList<Rc<LibModule>> {
+    let mut result: LinkedList<Rc<LibModule>> = LinkedList::new();
 
     let paths = fs::read_dir("./.dev/modules").unwrap(); // TODO: replace with configurable path
     for path_item in paths {
@@ -30,7 +31,7 @@ pub fn load_modules() -> LinkedList<LibModule> {
         let lib_path = path_dir_entry.path().into_os_string().into_string().unwrap();
         match load_module_from_lib(lib_path) {
             Ok(lm) => {
-                result.push_back(lm);
+                result.push_back(Rc::from(lm));
             },
             Err(_) => println!("Error"),
         };
