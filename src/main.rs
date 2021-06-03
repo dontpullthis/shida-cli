@@ -8,17 +8,18 @@ use crate::modules::lib_module::LibModule;
 use crate::modules::load_modules;
 use crate::system::cli_args::CliArgs;
 
-use shida_core::ffi::string_to_ccharptr;
+use shida_core::ffi;
+use shida_core::module::CanHandleFunc;
 
 
 fn assign_lib(lib: &mut Option<Rc<LibModule>>, lib_candidate: &Rc<LibModule>, lib_name_arg: Option<&String>) {
-    let can_handle_fn = lib_candidate.module.can_handle;
+    let can_handle_fn: CanHandleFunc = lib_candidate.module.can_handle;
     let input_type = match lib_name_arg {
         Some(i) => i,
         None => return,
     };
     unsafe {
-        if can_handle_fn(string_to_ccharptr(input_type.to_string())) {
+        if can_handle_fn(ffi::string_to_ccharptr(input_type.to_string())) {
             *lib = Some(lib_candidate.clone());
         }
     }
@@ -38,11 +39,45 @@ fn main() -> Result<(), Error> {
         assign_lib(&mut output_module, &lm, args.output.get("type"));
     }
 
-    if input_module.is_none() {
-        return Err(Error::new(ErrorKind::InvalidInput, "Cannot find a module for input."))
+    let input_module = match input_module {
+        None => return Err(Error::new(ErrorKind::InvalidInput, "Cannot find a module for input.")),
+        Some(m) => m,
+    };
+    // let output_module = match output_module {
+    //     None => return Err(Error::new(ErrorKind::InvalidInput, "Cannot find a module for output.")),
+    //     Some(m) => m,
+    // };
+
+    let src_connect_fn = input_module.module.init_reader;
+    let src_read_fn = input_module.module.read;
+    let (handle, err) = src_connect_fn(0, std::ptr::null());
+    if std::ptr::null() == err {
+        println!("No error");
+    } else {
+        let e = unsafe {
+            match ffi::ccharptr_to_string(err) {
+                Ok(r) => r,
+                Err(_) => String::from("Failed to decode an error message."),
+            }
+        };
+        return Err(Error::new(ErrorKind::InvalidInput, e));
     }
-    if output_module.is_none() {
-        return Err(Error::new(ErrorKind::InvalidInput, "Cannot find a module for output."))
+
+    let (result, err) = src_read_fn(handle);
+    if std::ptr::null() == err {
+        let res = unsafe { match ffi::ccharptr_to_string(result) {
+            Ok(r) => r,
+            Err(_) => return Err(Error::new(ErrorKind::InvalidInput, "Failed.")),
+        }};
+        println!("{}", res);
+    } else {
+        let e = unsafe {
+            match ffi::ccharptr_to_string(err) {
+                Ok(r) => r,
+                Err(_) => String::from("Failed to decode an error message."),
+            }
+        };
+        return Err(Error::new(ErrorKind::InvalidInput, e))
     }
 
     Ok(())
