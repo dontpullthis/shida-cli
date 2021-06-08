@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use clap::{Arg, App};
 
+use shida_core::ffi;
+
 pub struct CliArgs {
     pub input: HashMap<String, String>,
     pub output: HashMap<String, String>,
@@ -42,6 +44,29 @@ impl CliArgs {
 
 
         Ok(args)
+    }
+
+    pub fn input_as_byte_vec(&self) -> Vec<Vec<u8>> {
+        let mut result: Vec<Vec<u8>> = Vec::new();
+        for (k, v) in &self.input {
+            let kv = vec![k.as_str(), v.as_str()];
+            let kv = kv.join("=");
+            result.push(Vec::from(kv.as_bytes()));
+        }
+        result
+    }
+
+    pub fn input_as_c_char_ptr(&self) -> (usize, *mut ffi::MutCCharPtr) {
+        let size = self.input.len();
+        let result = unsafe { ffi::malloc::<ffi::MutCCharPtr>(size) };
+        let input_byte_vec = self.input_as_byte_vec();
+        for (index, line) in input_byte_vec.iter().enumerate() {
+            unsafe {
+                let val = result.offset(index as isize);
+                *val = ffi::bytes_vec_to_ccharptr(line);
+            }
+        }
+        (size, result)
     }
 }
 

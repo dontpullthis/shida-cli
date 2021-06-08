@@ -48,9 +48,11 @@ fn main() -> Result<(), Error> {
     //     Some(m) => m,
     // };
 
-    let src_connect_fn = input_module.module.init_reader;
+    let init_reader_fn = input_module.module.init_reader;
     let src_read_fn = input_module.module.read;
-    let (handle, err) = src_connect_fn(0, std::ptr::null());
+
+    let (len, input_args_cchar_ptr) = args.input_as_c_char_ptr();
+    let (handle, err) = init_reader_fn(len, input_args_cchar_ptr as *const ffi::ConstCCharPtr);
     if std::ptr::null() == err {
         println!("No error");
     } else {
