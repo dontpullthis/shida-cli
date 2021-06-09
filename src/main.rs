@@ -18,10 +18,8 @@ fn assign_lib(lib: &mut Option<Rc<LibModule>>, lib_candidate: &Rc<LibModule>, li
         Some(i) => i,
         None => return,
     };
-    unsafe {
-        if can_handle_fn(ffi::string_to_ccharptr(input_type.to_string())) {
-            *lib = Some(lib_candidate.clone());
-        }
+    if can_handle_fn(ffi::string_to_ccharptr(input_type.to_string())) {
+        *lib = Some(lib_candidate.clone());
     }
 }
 
@@ -56,28 +54,24 @@ fn main() -> Result<(), Error> {
     if std::ptr::null() == err {
         println!("No error");
     } else {
-        let e = unsafe {
-            match ffi::ccharptr_to_string(err) {
-                Ok(r) => r,
-                Err(_) => String::from("Failed to decode an error message."),
-            }
+        let e = match ffi::ccharptr_to_string(err) {
+            Ok(r) => r,
+            Err(_) => String::from("Failed to decode an error message."),
         };
         return Err(Error::new(ErrorKind::InvalidInput, e));
     }
 
     let (result, err) = src_read_fn(handle);
     if std::ptr::null() == err {
-        let res = unsafe { match ffi::ccharptr_to_string(result) {
+        let res = match ffi::ccharptr_to_string(result) {
             Ok(r) => r,
             Err(_) => return Err(Error::new(ErrorKind::InvalidInput, "Failed.")),
-        }};
+        };
         println!("{}", res);
     } else {
-        let e = unsafe {
-            match ffi::ccharptr_to_string(err) {
-                Ok(r) => r,
-                Err(_) => String::from("Failed to decode an error message."),
-            }
+        let e = match ffi::ccharptr_to_string(err) {
+            Ok(r) => r,
+            Err(_) => String::from("Failed to decode an error message."),
         };
         return Err(Error::new(ErrorKind::InvalidInput, e))
     }

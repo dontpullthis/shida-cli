@@ -58,7 +58,7 @@ impl CliArgs {
 
     pub fn input_as_c_char_ptr(&self) -> (usize, *mut ffi::MutCCharPtr) {
         let size = self.input.len();
-        let result = unsafe { ffi::malloc::<ffi::MutCCharPtr>(size) };
+        let result = ffi::malloc::<ffi::MutCCharPtr>(size);
         let input_byte_vec = self.input_as_byte_vec();
         for (index, line) in input_byte_vec.iter().enumerate() {
             unsafe {
