@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use clap::{Arg, App};
 
 use shida_core::ffi;
-use shida_core::sys::args::string_to_keyvalue;
+use shida_core::sys::args;
 
 pub struct CliArgs {
     pub input: HashMap<String, String>,
@@ -47,27 +47,9 @@ impl CliArgs {
         Ok(args)
     }
 
-    pub fn input_as_byte_vec(&self) -> Vec<Vec<u8>> {
-        let mut result: Vec<Vec<u8>> = Vec::new();
-        for (k, v) in &self.input {
-            let kv = vec![k.as_str(), v.as_str()];
-            let kv = kv.join("=");
-            result.push(Vec::from(kv.as_bytes()));
-        }
-        result
-    }
-
     pub fn input_as_c_char_ptr(&self) -> (usize, *mut ffi::MutCCharPtr) {
-        let size = self.input.len();
-        let result = ffi::malloc::<ffi::MutCCharPtr>(size);
-        let input_byte_vec = self.input_as_byte_vec();
-        for (index, line) in input_byte_vec.iter().enumerate() {
-            unsafe {
-                let val = result.offset(index as isize);
-                *val = ffi::bytes_vec_to_ccharptr(line);
-            }
-        }
-        (size, result)
+        let kv_vec = args::hashmap_to_string_vec(&self.input);
+        (self.input.len(), ffi::string_vec_to_cchar_ptr(&kv_vec))
     }
 }
 
@@ -79,7 +61,7 @@ fn extract_params(matches: &clap::ArgMatches, arg_name: &str) -> HashMap<String,
     };
 
     while let Some(param) = args.next() {
-        let (key, value) = match string_to_keyvalue(&String::from(param)) {
+        let (key, value) = match args::string_to_keyvalue(&String::from(param)) {
             Some(p) => p,
             None => continue,
         };
