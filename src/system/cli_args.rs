@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use clap::{Arg, App};
 
 use shida_core::ffi;
+use shida_core::sys::args::string_to_keyvalue;
 
 pub struct CliArgs {
     pub input: HashMap<String, String>,
@@ -78,12 +79,10 @@ fn extract_params(matches: &clap::ArgMatches, arg_name: &str) -> HashMap<String,
     };
 
     while let Some(param) = args.next() {
-        let pos = match param.find("=") {
-            Some(position) => position,
+        let (key, value) = match string_to_keyvalue(&String::from(param)) {
+            Some(p) => p,
             None => continue,
         };
-        let key = String::from(&param[..pos]);
-        let value = String::from(&param[pos+1..]);
         result.insert(key, value);
     }
 
