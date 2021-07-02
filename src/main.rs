@@ -1,14 +1,15 @@
 mod modules;
 mod system;
 
-use std::io::{Error, ErrorKind};
 use std::rc::Rc;
 
 use crate::modules::lib_module::LibModule;
 use crate::modules::load_modules;
 use crate::system::cli_args::CliArgs;
+use crate::system::error::Error;
 
 use shida_core::ffi;
+use shida_core::ffi::typedefs;
 use shida_core::module::CanHandleFunc;
 
 
@@ -23,10 +24,22 @@ fn assign_lib(lib: &mut Option<Rc<LibModule>>, lib_candidate: &Rc<LibModule>, li
     }
 }
 
+fn check_for_error(error: typedefs::ConstCCharPtr) -> Result<(), Error> {
+    if std::ptr::null() == error {
+        return Ok(());
+    }
+
+    let e = match ffi::ccharptr_to_string(error) {
+        Ok(r) => r,
+        Err(_) => String::from("Failed to decode an error message."),
+    };
+    Err(Error::new(e))
+}
+
 fn main() -> Result<(), Error> {
     let args = match CliArgs::new_from_args() {
         Ok(a) => a,
-        Err(e) => return Err(Error::new(ErrorKind::InvalidInput, format!("Failed to parse arguments: {}", e))),
+        Err(e) => return Err(Error::new(format!("Failed to parse arguments: {}", e))),
     };
 
     let mut modules = load_modules().into_iter();
@@ -38,7 +51,7 @@ fn main() -> Result<(), Error> {
     }
 
     let input_module = match input_module {
-        None => return Err(Error::new(ErrorKind::InvalidInput, "Cannot find a module for input.")),
+        None => return Err(Error::new("Cannot find a module for input.")),
         Some(m) => m,
     };
     // let output_module = match output_module {
@@ -50,22 +63,14 @@ fn main() -> Result<(), Error> {
     let src_read_fn = input_module.module.read;
 
     let (len, input_args_cchar_ptr) = args.input_as_c_char_ptr();
-    let (handle, err) = init_reader_fn(len, input_args_cchar_ptr as *const ffi::ConstCCharPtr);
-    if std::ptr::null() == err {
-        println!("No error");
-    } else {
-        let e = match ffi::ccharptr_to_string(err) {
-            Ok(r) => r,
-            Err(_) => String::from("Failed to decode an error message."),
-        };
-        return Err(Error::new(ErrorKind::InvalidInput, e));
-    }
+    let (handle, err) = init_reader_fn(len, input_args_cchar_ptr as *const typedefs::ConstCCharPtr);
+    check_for_error(err)?;
 
     let (result, err) = src_read_fn(handle);
     if std::ptr::null() == err {
         let res = match ffi::ccharptr_to_string(result) {
             Ok(r) => r,
-            Err(_) => return Err(Error::new(ErrorKind::InvalidInput, "Failed.")),
+            Err(_) => return Err(Error::new("Failed.")),
         };
         println!("{}", res);
     } else {
@@ -73,7 +78,7 @@ fn main() -> Result<(), Error> {
             Ok(r) => r,
             Err(_) => String::from("Failed to decode an error message."),
         };
-        return Err(Error::new(ErrorKind::InvalidInput, e))
+        return Err(Error::new(e));
     }
 
     Ok(())
