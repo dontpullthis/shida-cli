@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use clap::{Arg, App};
 
-use shida_core::ffi;
+use shida_core::ffi::casting;
 use shida_core::ffi::typedefs;
 use shida_core::sys::args;
 
@@ -50,7 +50,7 @@ impl CliArgs {
 
     pub fn input_as_c_char_ptr(&self) -> (usize, *mut typedefs::MutCCharPtr) {
         let kv_vec = args::hashmap_to_string_vec(&self.input);
-        (self.input.len(), ffi::string_vec_to_cchar_ptr(&kv_vec))
+        (self.input.len(), casting::string_vec_to_cchar_ptr(&kv_vec))
     }
 }
 

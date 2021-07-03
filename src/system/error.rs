@@ -5,6 +5,7 @@ pub struct Error {
 }
 
 impl Error {
+    #[allow(dead_code)]
     pub fn new<S: Into<String>>(message: S) -> Error {
         Error {
             message: message.into(),
