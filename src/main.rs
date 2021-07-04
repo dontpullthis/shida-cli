@@ -7,7 +7,6 @@ use log::{error};
 
 use shida_core::ffi::casting;
 use shida_core::ffi::typedefs;
-use shida_core::module::CanHandleFunc;
 
 use crate::ffi::app_config;
 use crate::modules::lib_module::LibModule;
@@ -17,12 +16,11 @@ use crate::system::init;
 
 
 fn assign_lib(lib: &mut Option<Rc<LibModule>>, lib_candidate: &Rc<LibModule>, lib_name_arg: Option<&String>) {
-    let can_handle_fn: CanHandleFunc = lib_candidate.module.can_handle;
     let input_type = match lib_name_arg {
         Some(i) => i,
         None => return,
     };
-    if can_handle_fn(casting::string_to_ccharptr(input_type.to_string())) {
+    if (lib_candidate.module.can_handle)(casting::string_to_ccharptr(input_type.to_string())) {
         *lib = Some(lib_candidate.clone());
     }
 }
@@ -70,14 +68,11 @@ fn main() {
     //     Some(m) => m,
     // };
 
-    let init_reader_fn = input_module.module.init_reader;
-    let src_read_fn = input_module.module.read;
-
     let (len, input_args_cchar_ptr) = args.input_as_c_char_ptr();
-    let (handle, err) = init_reader_fn(&app_config_struct as *const _, len, input_args_cchar_ptr as *const typedefs::ConstCCharPtr);
+    let (handle, err) = (input_module.module.init_reader)(&app_config_struct as *const _, len, input_args_cchar_ptr as *const typedefs::ConstCCharPtr);
     check_for_error(err);
 
-    let (result, err) = src_read_fn(handle);
+    let (result, err) = (input_module.module.read)(handle);
     check_for_error(err);
     let res = match casting::ccharptr_to_string(result) {
         Ok(r) => r,
